@@ -37,9 +37,11 @@ Assuming you have a dataset and features extracted from the video frames:
    ``
  python data_engine/subsample_frames_features.py
  ``
+ 
   ``
  python data_engine/generate_features_lists.py
  ``
+ 
   ``
  python data_engine/generate_descriptions_lists.py
  ``
