@@ -27,12 +27,8 @@ ABiViRNet requires the following libraries:
  - [Staged Keras Wrapper](https://github.com/MarcBS/staged_keras_wrapper) v0.5 or newer
  - [Coco-caption evaluation package] (https://github.com/lvapeab/coco-caption/tree/master/pycocoevalcap/)
 
-Additionally, if you want to run the tutorials and the visualization module, you'll need:
 
-  - [Jupyter Notebook](http://jupyter.readthedocs.io)
-  - [Matplotlib](http://matplotlib.org)
-  
-## How to use
+## Instructions:
 
 Assuming you have a dataset and features extracted from the video frames:
  
@@ -48,6 +44,8 @@ Assuming you have a dataset and features extracted from the video frames:
  python data_engine/generate_descriptions_lists.py
  ``
 
+See [data_engine/README.md](data_engine/README.md) for detailed information.
+
 2) Prepare the inputs/outputs of your model in `data_engine/prepare_data.py`
   
 3) Set a model configuration in  `config.py` 
@@ -57,6 +55,15 @@ Assuming you have a dataset and features extracted from the video frames:
   ``
  python main.py
  ``
+
+## Citation
+
+If you use this code for any purpose, please, do not forget to cite the following paper:
+
+```
+Peris Á, Bolaños M, Radeva P, Casacuberta F. Video Description using Bidirectional Recurrent Neural Networks. arXiv preprint arXiv:1604.03390. 2016 Apr 12.
+```
+
 ## About
 
 Joint collaboration between the [Computer Vision at the University of Barcelona (CVUB)](http://www.ub.edu/cvub/) group at [Universitat de Barcelona](www.ub.edu)-[CVC](http://www.cvc.uab.es) and the [PRHLT Research Center](https://www.prhlt.upv.es) at [Universitat Politècnica de València](https://www.upv.es).
@@ -67,17 +74,3 @@ Joint collaboration between the [Computer Vision at the University of Barcelona 
 Álvaro Peris ([web page](http://lvapeab.github.io/)): lvapeab@prhlt.upv.es 
 
 Marc Bolaños ([web page](http://www.ub.edu/cvub/marcbolanos/)): marc.bolanos@ub.edu
-
-
-
-## Citations
-
-```
-L. Yao,  A. Torabi,  K. Cho,  N. Ballas,  C. Pal,  H. Larochelle and A. Courville.
-Describing videos by exploiting temporal structure.  
-In Proceedings of the IEEE International Conference on Computer Vision, 2015
-
-K. Xu, J. Ba, R. Kiros, K. Cho, A. Courville, R. Salakhutdinov, R. Zemel, Y, Bengio.
-Show, attend and tell: Neural image caption generation with visual attention. 
-In: Proceedings of the International Conference on Machine Learning. 2015
-```
