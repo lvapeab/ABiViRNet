@@ -10,6 +10,15 @@ AViBiRNet is built upon the Keras framework and tested for the Theano backend.
  * MLPs for initializing the LSTM hidden and memory state
  * Beam search decoding
 
+## Installation
+
+
+ABiViRNet requires the following libraries:
+
+ - [Our version of Keras](https://github.com/MarcBS/keras) v1.0.4 or newer
+ - [Staged Keras Wrapper](https://github.com/MarcBS/staged_keras_wrapper) v0.1 or newer
+ - [Coco-caption evaluation](https://github.com/lvapeab/coco-caption)
+
 ## Instructions:
 
 Assuming you have a dataset and features extracted from the video frames:
@@ -42,9 +51,9 @@ See [data_engine/README.md](data_engine/README.md) for detailed information.
 
 If you use this code for any purpose, please, do not forget to cite the following paper:
 
-``
+```
 Peris Á, Bolaños M, Radeva P, Casacuberta F. Video Description using Bidirectional Recurrent Neural Networks. arXiv preprint arXiv:1604.03390. 2016 Apr 12.
-``
+```
 
 ## About
 
