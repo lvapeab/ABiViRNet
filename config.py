@@ -57,8 +57,8 @@ def load_parameters():
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 20                                # Beam size (in case of BEAM_SEARCH == True)
-    NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
-    ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
+    NORMALIZE_SAMPLING = False                    # Normalize hypotheses scores according to their length
+    ALPHA_FACTOR = 1.                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
 
     # Sampling params: Show some samples during training
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
