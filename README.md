@@ -12,10 +12,9 @@ AViBiRNet is built upon the Keras framework and tested for the Theano backend.
 
 ## Installation
 
-
 ABiViRNet requires the following libraries:
 
- - [Our version of Keras](https://github.com/MarcBS/keras) v1.0.4 or newer
+ - [Our version of Keras](https://github.com/MarcBS/keras) v1.2
  - [Staged Keras Wrapper](https://github.com/MarcBS/staged_keras_wrapper) v0.1 or newer
  - [Coco-caption evaluation](https://github.com/lvapeab/coco-caption)
 

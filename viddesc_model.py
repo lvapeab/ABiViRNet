@@ -1,6 +1,6 @@
 from keras.engine import Input
 from keras.engine.topology import merge
-from keras.layers.core import Dropout, RepeatVector, RepeatMatrix, Merge, Dense, Flatten, Activation, TimeDistributedDense, Lambda
+from keras.layers.core import Dropout, RepeatVector, Merge, Dense, Flatten, Activation, TimeDistributedDense, Lambda
 from keras.layers.embeddings import Embedding
 from keras.layers.wrappers import TimeDistributed, Bidirectional
 from keras.layers.recurrent import LSTM, LSTMCond, AttLSTMCond, AttLSTM

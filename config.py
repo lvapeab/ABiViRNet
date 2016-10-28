@@ -49,13 +49,16 @@ def load_parameters():
     EVAL_ON_SETS = ['val', 'test']                # Possible values: 'train', 'val' and 'test' (external evaluator)
     EVAL_ON_SETS_KERAS = []                       # Possible values: 'train', 'val' and 'test' (Keras' evaluator)
     START_EVAL_ON_EPOCH = 1                       # First epoch where the model will be evaluated
-    EVAL_EACH = 1                                 # Number of epochs between each evaluation
+    EVAL_EACH_EPOCHS = True                       # Select whether evaluate between N epochs or N updates
+    EVAL_EACH = 1                                 # Sets the evaluation frequency (epochs or updates)
+
+    # Search parameters
     SAMPLING = 'max_likelihood'                   # Possible values: multinomial or max_likelihood (recommended)
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
-    BEAM_SIZE = 20                                # Beam size (in case of BEAM_SEARCH == True) (default = 20)
-    EVAL_EACH_UPDATES = 1000                      # Sets the evaluation frequency
-    NORMALIZE_SAMPLING = False                    # Normalize hypotheses scores according to their length
+    BEAM_SIZE = 20                                # Beam size (in case of BEAM_SEARCH == True)
+    NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
+    ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
 
     # Sampling params: Show some samples during training
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
@@ -70,6 +73,8 @@ def load_parameters():
 
     FILL = 'end'                                  # whether we fill the 'end' or the 'start' of the sentence with 0s
     TRG_LAN = 'en'                                # Language of the outputs (mainly used for the Meteor evaluator)
+    PAD_ON_BATCH = True                           # Whether we take as many timesteps as the longes sequence of the batch
+                                                  # or a fixed size (MAX_OUTPUT_TEXT_LEN)
 
     # Input image parameters
     DATA_AUGMENTATION = False                      # Apply data augmentation on input data (noise on features)
@@ -90,10 +95,10 @@ def load_parameters():
     # Optimizer parameters (see model.compile() function)
     LOSS = 'categorical_crossentropy'
     LR_DECAY = 20  # number of minimum number of epochs before the next LR decay
-    LR_GAMMA = 0.8  # multiplier used for decreasing the LR
+    LR_GAMMA = 0.5  # multiplier used for decreasing the LR
 
     OPTIMIZER = 'Adam'      # Optimizer
-    LR = 0.001              # (recommended values - Adam 0.001 - Adadelta 1.0
+    LR = 0.001             # (recommended values - Adam 0.001 - Adadelta 1.0
     WEIGHT_DECAY = 1e-4     # L2 regularization
     CLIP_C = 10.            # During training, clip gradients to this norm
     SAMPLE_WEIGHTS = True   # Select whether we use a weights matrix (mask) for the data outputs
@@ -109,14 +114,14 @@ def load_parameters():
 
     # Early stop parameters
     EARLY_STOP = True           # Turns on/off the early stop protocol
-    PATIENCE = 5                # We'll stop if the val STOP_METRIC does not improve after this number of evaluations
+    PATIENCE = 10                # We'll stop if the val STOP_METRIC does not improve after this number of evaluations
     STOP_METRIC = 'Bleu_4'      # Metric for the stop
 
 
     # Model parameters
     # ===
     # Possible MODEL_TYPE values: 
-    #                          [ Available Models List  (see viddesc_model)]
+    #                          [ Available Models List  (see viddesc_model.py)]
     #
     #                          ArcticVideoCaptionWithInit
     #
@@ -155,7 +160,7 @@ def load_parameters():
     CLASSIFIER_ACTIVATION = 'softmax'
 
     # Results plot and models storing parameters
-    EXTRA_NAME = '_blstm_norminit4'                    # This will be appended to the end of the model name
+    EXTRA_NAME = '_best_model'                    # This will be appended to the end of the model name
     MODEL_NAME = MODEL_TYPE + '_'.join(FEATURE_NAMES) +\
                  '_txtemb_' + str(TEXT_EMBEDDING_HIDDEN_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \

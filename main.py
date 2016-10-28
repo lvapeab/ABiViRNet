@@ -187,29 +187,10 @@ def buildCallbacks(params, model, dataset):
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             extra_vars['normalize'] =  params['NORMALIZE_SAMPLING']
+            extra_vars['alpha_factor'] =  params['ALPHA_FACTOR']
 
-
-        callback_metric = utils.callbacks.PrintPerformanceMetricEachNUpdates(model, dataset,
-                                                           gt_id=params['OUTPUTS_IDS_DATASET'][0],
-                                                           metric_name=params['METRICS'],
-                                                           set_name=params['EVAL_ON_SETS'],
-                                                           batch_size=params['BATCH_SIZE'],
-                                                           each_n_updates=params['EVAL_EACH_UPDATES'],
-                                                           extra_vars=extra_vars,
-                                                           reload_epoch=params['RELOAD'],
-                                                           is_text=True, index2word_y=vocab, # text info
-                                                           sampling_type=params['SAMPLING'], # text info
-                                                           beam_search=params['BEAM_SEARCH'],
-                                                           save_path=model.model_path,
-                                                           write_samples=True,
-                                                           write_type=params['SAMPLING_SAVE_MODE'],
-                                                           early_stop=params['EARLY_STOP'],
-                                                           patience=params['PATIENCE'],
-                                                           stop_metric=params['STOP_METRIC'],
-                                                           verbose=params['VERBOSE'])
-        callbacks.append(callback_metric)
-        """
-        callback_metric = utils.callbacks.PrintPerformanceMetricOnEpochEnd(model, dataset,
+        if params['EVAL_EACH_EPOCHS']:
+            callback_metric = utils.callbacks.PrintPerformanceMetricOnEpochEnd(model, dataset,
                                                            gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                            metric_name=params['METRICS'],
                                                            set_name=params['EVAL_ON_SETS'],
@@ -228,8 +209,29 @@ def buildCallbacks(params, model, dataset):
                                                            patience=params['PATIENCE'],
                                                            stop_metric=params['STOP_METRIC'],
                                                            verbose=params['VERBOSE'])
+
+        else:
+            callback_metric = utils.callbacks.PrintPerformanceMetricEachNUpdates(model, dataset,
+                                                           gt_id=params['OUTPUTS_IDS_DATASET'][0],
+                                                           metric_name=params['METRICS'],
+                                                           set_name=params['EVAL_ON_SETS'],
+                                                           batch_size=params['BATCH_SIZE'],
+                                                           each_n_updates=params['EVAL_EACH'],
+                                                           extra_vars=extra_vars,
+                                                           reload_epoch=params['RELOAD'],
+                                                           is_text=True, index2word_y=vocab, # text info
+                                                           sampling_type=params['SAMPLING'], # text info
+                                                           beam_search=params['BEAM_SEARCH'],
+                                                           save_path=model.model_path,
+                                                           start_eval_on_epoch=params['START_EVAL_ON_EPOCH'],
+                                                           write_samples=True,
+                                                           write_type=params['SAMPLING_SAVE_MODE'],
+                                                           early_stop=params['EARLY_STOP'],
+                                                           patience=params['PATIENCE'],
+                                                           stop_metric=params['STOP_METRIC'],
+                                                           verbose=params['VERBOSE'])
         callbacks.append(callback_metric)
-        """
+
         if params['SAMPLE_ON_SETS']:
             # Evaluate sampling
             extra_vars = {'language': params['TRG_LAN'], 'n_parallel_loaders': params['PARALLEL_LOADERS']}
@@ -246,6 +248,7 @@ def buildCallbacks(params, model, dataset):
                 extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
                 extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
                 extra_vars['normalize'] =  params['NORMALIZE_SAMPLING']
+                extra_vars['alpha_factor'] =  params['ALPHA_FACTOR']
 
             callback_sampling = utils.callbacks.SampleEachNUpdates(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                                    set_name=params['SAMPLE_ON_SETS'],
