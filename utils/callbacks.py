@@ -34,7 +34,6 @@ def checkDefaultParamsBeamSearch(params):
 
     return default_params
 
-
 class PrintPerformanceMetricOnEpochEnd(KerasCallback):
 
     def __init__(self, model, dataset, gt_id, metric_name, set_name, batch_size, each_n_epochs=1, extra_vars=dict(),
@@ -193,7 +192,7 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
     def __init__(self, model, dataset, gt_id, metric_name, set_name, batch_size, extra_vars=dict(),
                  is_text=False, index2word_y=None, sampling='max_likelihood', beam_search=False,
                  write_samples = False, save_path='logs/performance.', reload_epoch=0,
-                 each_n_updates=10000, start_eval_on_epoch=0, write_type='list', sampling_type='max_likelihood',
+                 each_n_updates=10000, write_type='list', sampling_type='max_likelihood',
                  out_pred_idx=None, early_stop=False, patience=5, stop_metric = 'Bleu-4', verbose=1):
         """
             :param model: model to evaluate
@@ -230,7 +229,6 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
         self.extra_vars = extra_vars
         self.save_path = save_path
         self.reload_epoch = reload_epoch
-        self.start_eval_on_epoch = start_eval_on_epoch
         self.write_type = write_type
         self.sampling_type = sampling_type
         self.write_samples = write_samples
@@ -242,16 +240,10 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
         self.wait = 0
         self.verbose = verbose
         self.cum_update = 0
-        self.epoch = self.reload_epoch + 1
-
-    def on_epoch_end(self, epoch, logs={}):
-        self.epoch += 1
 
     def on_batch_end(self, n_update, logs={}):
         self.cum_update += 1 # start by index 1
         if self.cum_update % self.each_n_updates != 0:
-            return
-        if self.epoch < self.start_eval_on_epoch:
             return
         # Evaluate on each set separately
         for s in self.set_name:

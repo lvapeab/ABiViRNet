@@ -36,11 +36,6 @@ def get_coco_score(pred_list, verbose, extra_vars, split):
     hypo = {idx: map(extra_vars['tokenize_f'],[lines.strip()]) for (idx, lines) in enumerate(pred_list)}
     refs = {idx: map(extra_vars['tokenize_f'], gts[idx]) for idx in gts.keys()}
 
-    #refs = {key: [{'caption': extra_vars['tokenize_f'](caption), 'image_id': key, 'id': i} for i, caption in enumerate(gts[key])] for key in gts.keys()}
-    #hypo = {idx: [{'caption': extra_vars['tokenize_f'](line), 'image_id': idx, 'id': 0}] for (idx, line) in enumerate(pred_list)}
-    #tokenizer = PTBTokenizer()
-    #refs  = tokenizer.tokenize(refs)
-    #hypo = tokenizer.tokenize(hypo)
     scorers = [
         (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
         (Meteor(language=extra_vars['language']),"METEOR"),
