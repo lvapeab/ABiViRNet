@@ -112,8 +112,7 @@ class PrintPerformanceMetricOnEpochEnd(KerasCallback):
                 predictions = self.model_to_eval.BeamSearchNet(self.ds, params_prediction)[s]
             else:
                 predictions = self.model_to_eval.predictNet(self.ds, params_prediction)[s]
-            gt_y = eval('self.ds.Y_'+s+'["'+self.gt_id+'"]')
-            
+
             if(self.is_text):
                 if self.out_pred_idx is not None:
                     predictions = predictions[self.out_pred_idx]
@@ -127,7 +126,6 @@ class PrintPerformanceMetricOnEpochEnd(KerasCallback):
                                                       self.index2word_y,
                                                       self.sampling_type,
                                                       verbose=self.verbose)
-            
             # Store predictions
             if self.write_samples:
                 # Store result
@@ -138,6 +136,8 @@ class PrintPerformanceMetricOnEpochEnd(KerasCallback):
                     list2vqa(filepath, predictions, self.extra_vars[s]['question_ids'])
                 elif self.write_type == 'listoflists':
                     listoflists2file(filepath, predictions)
+                elif self.write_type == 'numpy':
+                    numpy2file(filepath, predictions)
                 else:
                     raise NotImplementedError('The store type "'+self.write_type+'" is not implemented.')
 
@@ -192,7 +192,7 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
     def __init__(self, model, dataset, gt_id, metric_name, set_name, batch_size, extra_vars=dict(),
                  is_text=False, index2word_y=None, sampling='max_likelihood', beam_search=False,
                  write_samples = False, save_path='logs/performance.', reload_epoch=0,
-                 each_n_updates=10000, write_type='list', sampling_type='max_likelihood',
+                 each_n_updates=10000, start_eval_on_epoch=0, write_type='list', sampling_type='max_likelihood',
                  out_pred_idx=None, early_stop=False, patience=5, stop_metric = 'Bleu-4', verbose=1):
         """
             :param model: model to evaluate
@@ -229,6 +229,7 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
         self.extra_vars = extra_vars
         self.save_path = save_path
         self.reload_epoch = reload_epoch
+        self.start_eval_on_epoch = start_eval_on_epoch
         self.write_type = write_type
         self.sampling_type = sampling_type
         self.write_samples = write_samples
@@ -240,10 +241,16 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
         self.wait = 0
         self.verbose = verbose
         self.cum_update = 0
+        self.epoch = self.reload_epoch + 1
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
 
     def on_batch_end(self, n_update, logs={}):
         self.cum_update += 1 # start by index 1
         if self.cum_update % self.each_n_updates != 0:
+            return
+        if self.epoch < self.start_eval_on_epoch:
             return
         # Evaluate on each set separately
         for s in self.set_name:
@@ -257,7 +264,6 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
                 predictions = self.model_to_eval.BeamSearchNet(self.ds, params_prediction)[s]
             else:
                 predictions = self.model_to_eval.predictNet(self.ds, params_prediction)[s]
-            gt_y = eval('self.ds.Y_'+s+'["'+self.gt_id+'"]')
 
             if(self.is_text):
                 if self.out_pred_idx is not None:
@@ -276,13 +282,15 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
             # Store predictions
             if self.write_samples:
                 # Store result
-                filepath = self.save_path +'/'+ s +'_update_'+ str(self.cum_update) +'.pred' # results file
+                filepath = self.save_path + '/' + s + '_update_' + str(self.cum_update) + '.pred'  # results file
                 if self.write_type == 'list':
                     list2file(filepath, predictions)
                 elif self.write_type == 'vqa':
                     list2vqa(filepath, predictions, self.extra_vars[s]['question_ids'])
                 elif self.write_type == 'listoflists':
                     listoflists2file(filepath, predictions)
+                elif self.write_type == 'numpy':
+                    numpy2file(filepath, predictions)
                 else:
                     raise NotImplementedError('The store type "'+self.write_type+'" is not implemented.')
 
@@ -290,7 +298,7 @@ class PrintPerformanceMetricEachNUpdates(KerasCallback):
             for metric in self.metric_name:
                 if self.verbose > 0:
                     logging.info('Evaluating on metric '+metric)
-                filepath = self.save_path +'/'+ s +'.'+metric # results file
+                filepath = self.save_path + '/' + s + '.' + metric  # results file
 
                 # Evaluate on the chosen metric
                 metrics = evaluation.select[metric](
@@ -375,7 +383,7 @@ class SampleEachNUpdates(KerasCallback):
         self.verbose = verbose
 
     def on_batch_end(self, n_update, logs={}):
-        n_update += 1 # start by index 1
+        n_update += 1  # start by index 1
         n_update += self.reload_epoch
         if n_update < self.start_sampling_on_epoch:
             return
@@ -418,7 +426,6 @@ class SampleEachNUpdates(KerasCallback):
             for i, (sample, truth) in enumerate(zip(predictions, truths)):
                 print ("Hypothesis (%d): %s"%(i, sample))
                 print ("Reference  (%d): %s"%(i, truth))
-
 
 
 class ReduceLearningRate(KerasCallback):
