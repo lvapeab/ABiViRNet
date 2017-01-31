@@ -21,24 +21,39 @@ def build_dataset(params):
         # Let's load the train, val and test splits of the descriptions (outputs)
         #    the files include a description per line. In this dataset a variable number
         #    of descriptions per video are provided.
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['train'], 'train',
-               type='text', id=params['OUTPUTS_IDS_DATASET'][0], build_vocabulary=True,
-               tokenization=params['TOKENIZATION_METHOD'],
-               fill=params['FILL'], pad_on_batch=True,
-               max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-               sample_weights=params['SAMPLE_WEIGHTS'],
-               min_occ=params['MIN_OCCURRENCES_VOCAB'])
+        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['train'],
+                     'train',
+                     type='text',
+                     id=params['OUTPUTS_IDS_DATASET'][0],
+                     build_vocabulary=True,
+                     tokenization=params['TOKENIZATION_METHOD'],
+                     fill=params['FILL'],
+                     pad_on_batch=True,
+                     max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                     sample_weights=params['SAMPLE_WEIGHTS'],
+                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
         
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['val'], 'val',
-               type='text', id=params['OUTPUTS_IDS_DATASET'][0], build_vocabulary=True, pad_on_batch=True,
-               tokenization=params['TOKENIZATION_METHOD'], sample_weights=params['SAMPLE_WEIGHTS'],
-
-               max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'], min_occ=params['MIN_OCCURRENCES_VOCAB'])
+        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['val'],
+                     'val',
+                     type='text',
+                     id=params['OUTPUTS_IDS_DATASET'][0],
+                     build_vocabulary=True,
+                     pad_on_batch=True,
+                     tokenization=params['TOKENIZATION_METHOD'],
+                     sample_weights=params['SAMPLE_WEIGHTS'],
+                     max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
         
-        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['test'], 'test',
-               type='text', id=params['OUTPUTS_IDS_DATASET'][0], build_vocabulary=True, pad_on_batch=True,
-               tokenization=params['TOKENIZATION_METHOD'], sample_weights=params['SAMPLE_WEIGHTS'],
-               max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'], min_occ=params['MIN_OCCURRENCES_VOCAB'])
+        ds.setOutput(base_path+'/'+params['DESCRIPTION_FILES']['test'],
+                     'test',
+                     type='text',
+                     id=params['OUTPUTS_IDS_DATASET'][0],
+                     build_vocabulary=True,
+                     pad_on_batch=True,
+                     tokenization=params['TOKENIZATION_METHOD'],
+                     sample_weights=params['SAMPLE_WEIGHTS'],
+                     max_text_len=params['MAX_OUTPUT_TEXT_LEN_TEST'],
+                     min_occ=params['MIN_OCCURRENCES_VOCAB'])
         
         ##### INPUT DATA
         # Let's load the associated videos (inputs)
@@ -56,17 +71,27 @@ def build_dataset(params):
                 counts_files = base_path+'/'+params['FRAMES_COUNTS_FILES'][split] % feat_type
                 
                 ds.setInput([list_files, counts_files],
-                            split, type=params['INPUT_DATA_TYPE'], id=params['INPUTS_IDS_DATASET'][0],
-                            repeat_set=num_cap, max_video_len=params['NUM_FRAMES'],
+                            split,
+                            type=params['INPUT_DATA_TYPE'],
+                            id=params['INPUTS_IDS_DATASET'][0],
+                            repeat_set=num_cap,
+                            max_video_len=params['NUM_FRAMES'],
                             feat_len=params['IMG_FEAT_SIZE'])
 
         if len(params['INPUTS_IDS_DATASET']) > 1:
-            ds.setInput(base_path+'/'+params['DESCRIPTION_FILES']['train'], 'train',
-                       type='text', id=params['INPUTS_IDS_DATASET'][-1], required=False,
-                       tokenization=params['TOKENIZATION_METHOD'], pad_on_batch=True,
-                       build_vocabulary=params['OUTPUTS_IDS_DATASET'][0], offset=1, fill=params['FILL'],
-                       max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
-                       max_words=params['INPUT_VOCABULARY_SIZE'], min_occ=params['MIN_OCCURRENCES_VOCAB'])
+            ds.setInput(base_path+'/'+params['DESCRIPTION_FILES']['train'],
+                        'train',
+                        type='text',
+                        id=params['INPUTS_IDS_DATASET'][-1],
+                        required=False,
+                        tokenization=params['TOKENIZATION_METHOD'],
+                        pad_on_batch=True,
+                        build_vocabulary=params['OUTPUTS_IDS_DATASET'][0],
+                        offset=1,
+                        fill=params['FILL'],
+                        max_text_len=params['MAX_OUTPUT_TEXT_LEN'],
+                        max_words=params['OUTPUT_VOCABULARY_SIZE'],
+                        min_occ=params['MIN_OCCURRENCES_VOCAB'])
 
             ds.setInput(None, 'val', type='ghost', id=params['INPUTS_IDS_DATASET'][-1], required=False)
             ds.setInput(None, 'test', type='ghost', id=params['INPUTS_IDS_DATASET'][-1], required=False)

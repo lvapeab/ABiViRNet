@@ -5,10 +5,11 @@ Author: Mateusz Malinowski
 Email: mmalinow@mpi-inf.mpg.de
 
 Modified by: Marc Bola\~nos
+             \'Alvaro Peris
 """
 
 import json
-
+import numpy as np
 ###
 # Helpers
 ###
@@ -26,6 +27,10 @@ def file2list(filepath):
 
     return lines
 
+def numpy2file(filepath, mylist, permission='w'):
+    mylist = np.asarray(mylist)
+    with open(filepath, permission) as f:
+        np.save(f, mylist)
 
 def listoflists2file(filepath,mylist,permission='w'):
     mylist = [str(sublist) for sublist in mylist]
