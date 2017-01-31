@@ -57,14 +57,14 @@ def load_parameters():
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
     BEAM_SIZE = 20                                # Beam size (in case of BEAM_SEARCH == True)
-    NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
-    ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
+    NORMALIZE_SAMPLING = False                     # Normalize hypotheses scores according to their length
+    ALPHA_FACTOR = 1.0                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
 
     # Sampling params: Show some samples during training
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 1                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 450                     # Sampling frequency
+    SAMPLE_EACH_UPDATES = 450                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -105,7 +105,7 @@ def load_parameters():
 
     # Training parameters
     MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 64
+    BATCH_SIZE = 1         # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False # Use batches with homogeneous output lengths for every minibatch (Dangerous)
     PARALLEL_LOADERS = 8        # Parallel data batch loaders
@@ -171,14 +171,16 @@ def load_parameters():
 
     MODEL_NAME += EXTRA_NAME
             
+    MODEL_NAME = 'Best_Model'
+
     STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Verbosity level
-    RELOAD = 0                                         # If 0 start training from scratch, otherwise the model
+    RELOAD = 2                                         # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
-    REBUILD_DATASET = True                             # Build again or use stored instance
+    REBUILD_DATASET = False                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
 

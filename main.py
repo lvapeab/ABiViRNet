@@ -4,9 +4,10 @@ from timeit import default_timer as timer
 from config import load_parameters
 from data_engine.prepare_data import build_dataset
 from viddesc_model import VideoDesc_Model
-from keras_wrapper.cnn_model import loadModel, saveModel
 
-import utils
+from keras_wrapper.cnn_model import loadModel, saveModel
+from keras_wrapper.extra.callbacks import PrintPerformanceMetricOnEpochEnd, PrintPerformanceMetricEachNUpdates, SampleEachNUpdates
+
 import sys
 import ast
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
@@ -121,7 +122,7 @@ def apply_Video_model(params):
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
             params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
 
-            predictions = image_model.BeamSearchNet(dataset, params_prediction)[s]
+            predictions = image_model.predictBeamSearchNet(dataset, params_prediction)[s]
             predictions = image_model.decode_predictions_beam_search(predictions, vocab, verbose=params['VERBOSE'])
         else:
             predictions = image_model.predictNet(dataset, params_prediction)[s]
@@ -190,7 +191,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['alpha_factor'] =  params['ALPHA_FACTOR']
 
         if params['EVAL_EACH_EPOCHS']:
-            callback_metric = utils.callbacks.PrintPerformanceMetricOnEpochEnd(model, dataset,
+            callback_metric = PrintPerformanceMetricOnEpochEnd(model, dataset,
                                                            gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                            metric_name=params['METRICS'],
                                                            set_name=params['EVAL_ON_SETS'],
@@ -211,7 +212,7 @@ def buildCallbacks(params, model, dataset):
                                                            verbose=params['VERBOSE'])
 
         else:
-            callback_metric = utils.callbacks.PrintPerformanceMetricEachNUpdates(model, dataset,
+            callback_metric = PrintPerformanceMetricEachNUpdates(model, dataset,
                                                            gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                            metric_name=params['METRICS'],
                                                            set_name=params['EVAL_ON_SETS'],
@@ -250,7 +251,7 @@ def buildCallbacks(params, model, dataset):
                 extra_vars['normalize'] =  params['NORMALIZE_SAMPLING']
                 extra_vars['alpha_factor'] =  params['ALPHA_FACTOR']
 
-            callback_sampling = utils.callbacks.SampleEachNUpdates(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
+            callback_sampling = SampleEachNUpdates(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                                    set_name=params['SAMPLE_ON_SETS'],
                                                                    n_samples=params['N_SAMPLES'],
                                                                    each_n_updates=params['SAMPLE_EACH_UPDATES'],

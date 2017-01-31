@@ -4,7 +4,7 @@ from keras.layers.core import Dropout, RepeatVector, Merge, Dense, Flatten, Acti
 from keras.layers.embeddings import Embedding
 from keras.layers.wrappers import TimeDistributed, Bidirectional
 from keras.layers.recurrent import LSTM, LSTMCond, AttLSTMCond, AttLSTM
-from keras.models import model_from_json, Sequential, Graph, Model
+from keras.models import model_from_json, Sequential, Model
 from keras.layers.advanced_activations import PReLU
 from keras.layers.normalization import BatchNormalization, L2_norm
 from keras.layers.convolutional import AveragePooling1D
