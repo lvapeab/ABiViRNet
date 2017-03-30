@@ -24,7 +24,7 @@ backend.
 ABiViRNet requires the following libraries:
 
  - [Our version of Keras](https://github.com/MarcBS/keras) v1.2.1
- - [Multimodal Keras Wrapper](https://github.com/MarcBS/multimodal_keras_wrapper) v0.65
+ - [Multimodal Keras Wrapper](https://github.com/MarcBS/multimodal_keras_wrapper) v0.7 
  - [Coco-caption evaluation package](https://github.com/lvapeab/coco-caption/tree/master/pycocoevalcap/)
 
 ## Instructions:
