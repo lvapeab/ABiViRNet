@@ -14,12 +14,12 @@ features_name = 'ImageNet'
 # features_counts = ['train_' + features_name + '_counts.txt', 'val_' + features_name + '_counts.txt', 'test_' + features_name + '_counts.txt']
 
 ###### Files all original frames of videos
-features_files = ['train_' + features_name + '_all_frames.csv',
-                  'val_' + features_name + '_all_frames.csv',
-                  'test_' + features_name + '_all_frames.csv']
-features_counts = ['train_' + features_name + '_all_frames_counts.txt',
-                   'val_' + features_name + '_all_frames_counts.txt',
-                   'test_' + features_name + '_all_frames_counts.txt']
+features_files = ['train_' + features_name + '.csv',
+                  'val_' + features_name + '.csv',
+                  'test_' + features_name + '.csv']
+features_counts = ['train_' + features_name + '_counts.txt',
+                   'val_' + features_name + '_counts.txt',
+                   'test_' + features_name + '_counts.txt']
 
 # features_name = 'C3D_fc8_ImageNet'
 # features_files = ['train_' + features_name + '.csv', 'val_' + features_name + '.csv', 'test_' + features_name + '.csv']

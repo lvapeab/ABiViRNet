@@ -23,11 +23,9 @@ def main():
     train_out_counts = 'train_descriptions_counts.npy'
     val_out_counts = 'val_descriptions_counts.npy'
     test_out_counts = 'test_descriptions_counts.npy'
-    
     #################################
 
     # Code
-    
     text = path_files+'/'+text
     splits = [path_files+'/'+train, path_files+'/'+val, path_files+'/'+test]
     splits_out = [path_files+'/'+train_out, path_files+'/'+val_out, path_files+'/'+test_out]
@@ -41,9 +39,6 @@ def main():
                 line = line.rstrip('\n')
                 img_splits[i].append(line)
   
-    #print img_splits
-
-
     # read descriptions and assign them to a split
     desc_splits = []
     counts_splits = []
@@ -71,7 +66,6 @@ def main():
             if(not found):
                 print 'Warning: Video '+img+' does not exist in lists'
             
-
     # write descriptions in separate files
     for f, d in zip(splits_out, desc_splits):
         f = open(base_path+f, 'w')

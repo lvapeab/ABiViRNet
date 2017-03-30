@@ -22,8 +22,6 @@ def load_parameters():
                           }
     FEATURE_NAMES = ['ImageNet'] # append '_L2' at the end of each feature type if using their L2 version
 
-    #FEATURE_NAMES = ['ImageNetFV', 'ImageNet', 'Scenes', 'C3D'] # append '_L2' at the end of each feature type if using their L2 version
-    
     # Output data
     DESCRIPTION_FILES = {'train': 'Annotations/train_descriptions.txt',                 # Description files
                          'val': 'Annotations/val_descriptions.txt',
@@ -93,28 +91,30 @@ def load_parameters():
 
     OPTIMIZER = 'Adam'                            # Optimizer
     LR = 0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
-    CLIP_C = 1.                                   # During training, clip gradients to this norm
+    CLIP_C = 1.                                   # During training, clip L2 norm of gradients to this value (0. means deactivated)
+    CLIP_V = 0.                                   # During training, clip absolute value of gradients to this value (0. means deactivated)
     SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
     LR_DECAY = None                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
     LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
 
     # Training parameters
-    MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 1         # ABiViRNet trained with BATCH_SIZE = 64
+    MAX_EPOCH = 50                                # Stop when computed this number of epochs
+    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
 
     HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
     PARALLEL_LOADERS = 8                          # Parallel data batch loaders
     EPOCHS_FOR_SAVE = 1                           # Number of epochs between model saves
     WRITE_VALID_SAMPLES = True                    # Write valid samples in file
+    SAVE_EACH_EVALUATION = True                   # Save each time we evaluate the model
 
     # Early stop parameters
     EARLY_STOP = True                             # Turns on/off the early stop protocol
-    PATIENCE = 10                                 # We'll stop if the val STOP_METRIC does not improve after this
+    PATIENCE = 10                                 # We'll stop if the val cd  does not improve after this
                                                   # number of evaluations
     STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
     # Model parameters
-    MODEL_TYPE = 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'ABiVirNet'
     RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
     # Input text parameters
@@ -145,7 +145,7 @@ def load_parameters():
     # Additional Fully-Connected layers's sizes applied before softmax.
     #       Here we should specify the activation function and the output dimension
     #       (e.g DEEP_OUTPUT_LAYERS = [('tanh', 600), ('relu', 400), ('relu', 200)])
-    DEEP_OUTPUT_LAYERS = [('maxout', TARGET_TEXT_EMBEDDING_SIZE/2)]
+    DEEP_OUTPUT_LAYERS = [('linear', TARGET_TEXT_EMBEDDING_SIZE)]
 
     # Regularizers
     WEIGHT_DECAY = 1e-4                           # L2 regularization
@@ -177,24 +177,23 @@ def load_parameters():
                  '_' + OPTIMIZER
 
     MODEL_NAME += EXTRA_NAME
-            
-    MODEL_NAME = 'Best_Model'
 
-    STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
+    STORE_PATH = 'trained_models/' + MODEL_NAME + '/'  # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
     VERBOSE = 1                                        # Verbosity level
-    RELOAD = 2                                         # If 0 start training from scratch, otherwise the model
+    RELOAD = 0                                         # If 0 start training from scratch, otherwise the model
                                                        # Saved on epoch 'RELOAD' will be used
-    REBUILD_DATASET = False                             # Build again or use stored instance
+    REBUILD_DATASET = True                             # Build again or use stored instance
     MODE = 'training'                                  # 'training' or 'sampling' (if 'sampling' then RELOAD must
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
 
     # Extra parameters for special trainings
-    TRAIN_ON_TRAINVAL = False  # train the model on both training and validation sets combined
-    FORCE_RELOAD_VOCABULARY = False  # force building a new vocabulary from the training samples applicable if RELOAD > 1
+    TRAIN_ON_TRAINVAL = False                          # train the model on both training and validation sets combined
+    FORCE_RELOAD_VOCABULARY = False                    # force building a new vocabulary from the training samples
+                                                       # applicable if RELOAD > 1
 
-    # ============================================
+    # ================================================ #
     parameters = locals().copy()
     return parameters

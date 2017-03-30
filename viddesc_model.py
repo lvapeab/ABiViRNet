@@ -9,7 +9,7 @@ from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
 from keras.regularizers import l2
 from keras_wrapper.cnn_model import Model_Wrapper
 from keras import backend as K
-from utils.regularize import Regularize
+from keras_wrapper.extra.regularize import Regularize
 import numpy as np
 import os
 import logging
@@ -156,7 +156,7 @@ class VideoDesc_Model(Model_Wrapper):
     #       PREDEFINED MODELS
     # ------------------------------------------------------- #
 
-    def ArcticVideoCaptionWithInit(self, params):
+    def ABiVirNet(self, params):
         """
         Video captioning with:
             * Attention mechansim on video frames
