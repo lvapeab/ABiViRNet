@@ -127,7 +127,7 @@ def apply_Video_model(params):
             params_prediction['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             params_prediction['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             params_prediction['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
-            params_prediction['normalize'] = params['NORMALIZE_SAMPLING']
+            params_prediction['normalize_probs'] = params['NORMALIZE_SAMPLING']
 
             params_prediction['alpha_factor'] = params['ALPHA_FACTOR']
             predictions = video_model.predictBeamSearchNet(dataset, params_prediction)[s]
@@ -203,7 +203,7 @@ def buildCallbacks(params, model, dataset):
             extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
             extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
             extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
-            extra_vars['normalize'] = params.get('NORMALIZE_SAMPLING', False)
+            extra_vars['normalize_probs'] = params.get('NORMALIZE_SAMPLING', False)
             extra_vars['alpha_factor'] = params.get('ALPHA_FACTOR', 1.)
 
         callback_metric = PrintPerformanceMetricOnEpochEndOrEachNUpdates(model,
@@ -249,7 +249,7 @@ def buildCallbacks(params, model, dataset):
                 extra_vars['model_outputs'] = params['OUTPUTS_IDS_MODEL']
                 extra_vars['dataset_inputs'] = params['INPUTS_IDS_DATASET']
                 extra_vars['dataset_outputs'] = params['OUTPUTS_IDS_DATASET']
-                extra_vars['normalize'] = params['NORMALIZE_SAMPLING']
+                extra_vars['normalize_probs'] = params['NORMALIZE_SAMPLING']
                 extra_vars['alpha_factor'] = params['ALPHA_FACTOR']
 
             callback_sampling = SampleEachNUpdates(model,
