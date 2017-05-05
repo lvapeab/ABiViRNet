@@ -112,7 +112,7 @@ def apply_Video_model(params):
     for s in params["EVAL_ON_SETS"]:
 
         # Apply model predictions
-        params_prediction = {'batch_size': params['BATCH_SIZE'],
+        params_prediction = {'max_batch_size': params['BATCH_SIZE'],
                              'n_parallel_loaders': params['PARALLEL_LOADERS'],
                              'predict_on_sets': [s]}
 
