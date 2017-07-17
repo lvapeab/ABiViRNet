@@ -4,9 +4,6 @@ def load_parameters():
     """
     # Input data params
     DATA_ROOT_PATH = '/media/HDD_2TB/DATASETS/MSVD/'            # Root path to the data
-    # raw images
-    #DATASET_NAME = 'MSVD_raw_images'                           # Dataset name
-
     # preprocessed features
     DATASET_NAME = 'MSVD_features'                              # Dataset name
 
@@ -25,8 +22,6 @@ def load_parameters():
                           }
     FEATURE_NAMES = ['ImageNet'] # append '_L2' at the end of each feature type if using their L2 version
 
-    #FEATURE_NAMES = ['ImageNetFV', 'ImageNet', 'Scenes', 'C3D'] # append '_L2' at the end of each feature type if using their L2 version
-    
     # Output data
     DESCRIPTION_FILES = {'train': 'Annotations/train_descriptions.txt',                 # Description files
                          'val': 'Annotations/val_descriptions.txt',
@@ -56,15 +51,17 @@ def load_parameters():
     SAMPLING = 'max_likelihood'                   # Possible values: multinomial or max_likelihood (recommended)
     TEMPERATURE = 1                               # Multinomial sampling parameter
     BEAM_SEARCH = True                            # Switches on-off the beam search procedure
-    BEAM_SIZE = 20                                # Beam size (in case of BEAM_SEARCH == True)
-    NORMALIZE_SAMPLING = False                    # Normalize hypotheses scores according to their length
-    ALPHA_FACTOR = 1.                             # Normalization according to length**ALPHA_FACTOR (https://arxiv.org/pdf/1609.08144v1.pdf)
+    BEAM_SIZE = 10                                 # Beam size (in case of BEAM_SEARCH == True)
+    OPTIMIZED_SEARCH = True                       # Compute annotations only a single time per sample
+    NORMALIZE_SAMPLING = True                     # Normalize hypotheses scores according to their length
+    ALPHA_FACTOR = .6                             # Normalization according to length**ALPHA_FACTOR
+                                                  # (see: arxiv.org/abs/1609.08144)
 
     # Sampling params: Show some samples during training
     SAMPLE_ON_SETS = ['train', 'val']             # Possible values: 'train', 'val' and 'test'
     N_SAMPLES = 5                                 # Number of samples generated
     START_SAMPLING_ON_EPOCH = 1                   # First epoch where the model will be evaluated
-    SAMPLE_EACH_UPDATES = 450                     # Sampling frequency
+    SAMPLE_EACH_UPDATES = 450                     # Sampling frequency (default 450)
 
     # Word representation params
     TOKENIZATION_METHOD = 'tokenize_icann'        # Select which tokenization we'll apply:
@@ -80,98 +77,108 @@ def load_parameters():
     DATA_AUGMENTATION = False                      # Apply data augmentation on input data (noise on features)
     IMG_FEAT_SIZE = 1024                           # Size of the image features
 
-    # Input text parameters
-    INPUT_VOCABULARY_SIZE = 0  # Size of the input vocabulary. Set to 0 for using all, otherwise will be truncated to these most frequent words.
-    MIN_OCCURRENCES_VOCAB = 0 # Minimum number of occurrences allowed for the words in the vocabulay. Set to 0 for using them all.
-    MAX_INPUT_TEXT_LEN = NUM_FRAMES  # Maximum length of the input sequence
-
     # Output text parameters
-    OUTPUT_VOCABULARY_SIZE = 0  # vocabulary of output text. Set to 0 for autosetting, otherwise will be truncated
-    MAX_OUTPUT_TEXT_LEN = 30    # set to 0 if we want to use the whole answer as a single class
-    MAX_OUTPUT_TEXT_LEN_TEST = 100
-
-    CLASSIFIER_ACTIVATION = 'softmax'
+    OUTPUT_VOCABULARY_SIZE = 0                    # Size of the input vocabulary. Set to 0 for using all,
+                                                  # otherwise it will be truncated to these most frequent words.
+    MAX_OUTPUT_TEXT_LEN = 30                      # Maximum length of the output sequence
+                                                  # set to 0 if we want to use the whole answer as a single class
+    MAX_OUTPUT_TEXT_LEN_TEST = 120                # Maximum length of the output sequence during test time
+    MIN_OCCURRENCES_VOCAB = 0                     # Minimum number of occurrences allowed for the words in the vocabulay.
 
     # Optimizer parameters (see model.compile() function)
     LOSS = 'categorical_crossentropy'
-    LR_DECAY = 20  # number of minimum number of epochs before the next LR decay
-    LR_GAMMA = 0.5  # multiplier used for decreasing the LR
+    CLASSIFIER_ACTIVATION = 'softmax'
 
-    OPTIMIZER = 'Adam'      # Optimizer
-    LR = 0.001             # (recommended values - Adam 0.001 - Adadelta 1.0
-    WEIGHT_DECAY = 1e-4     # L2 regularization
-    CLIP_C = 10.            # During training, clip gradients to this norm
-    SAMPLE_WEIGHTS = True   # Select whether we use a weights matrix (mask) for the data outputs
+    OPTIMIZER = 'Adam'                            # Optimizer
+    LR = 0.001                                    # Learning rate. Recommended values - Adam 0.001 - Adadelta 1.0
+    CLIP_C = 1.                                   # During training, clip L2 norm of gradients to this value (0. means deactivated)
+    CLIP_V = 0.                                   # During training, clip absolute value of gradients to this value (0. means deactivated)
+    SAMPLE_WEIGHTS = True                         # Select whether we use a weights matrix (mask) for the data outputs
+    LR_DECAY = None                               # Minimum number of epochs before the next LR decay. Set to None if don't want to decay the learning rate
+    LR_GAMMA = 0.8                                # Multiplier used for decreasing the LR
 
     # Training parameters
-    MAX_EPOCH = 50          # Stop when computed this number of epochs
-    BATCH_SIZE = 64
+    MAX_EPOCH = 50                                # Stop when computed this number of epochs
+    BATCH_SIZE = 64                               # ABiViRNet trained with BATCH_SIZE = 64
 
-    HOMOGENEOUS_BATCHES = False # Use batches with homogeneous output lengths for every minibatch (Dangerous)
-    PARALLEL_LOADERS = 8        # Parallel data batch loaders
-    EPOCHS_FOR_SAVE = 1         # Number of epochs between model saves
-    WRITE_VALID_SAMPLES = True  # Write valid samples in file
+    HOMOGENEOUS_BATCHES = False                   # Use batches with homogeneous output lengths for every minibatch (Possibly buggy!)
+    PARALLEL_LOADERS = 8                          # Parallel data batch loaders
+    EPOCHS_FOR_SAVE = 1                           # Number of epochs between model saves
+    WRITE_VALID_SAMPLES = True                    # Write valid samples in file
+    SAVE_EACH_EVALUATION = True                   # Save each time we evaluate the model
 
     # Early stop parameters
-    EARLY_STOP = True           # Turns on/off the early stop protocol
-    PATIENCE = 10                # We'll stop if the val STOP_METRIC does not improve after this number of evaluations
-    STOP_METRIC = 'Bleu_4'      # Metric for the stop
-
+    EARLY_STOP = True                             # Turns on/off the early stop protocol
+    PATIENCE = 10                                 # We'll stop if the val cd  does not improve after this
+                                                  # number of evaluations
+    STOP_METRIC = 'Bleu_4'                        # Metric for the stop
 
     # Model parameters
-    # ===
-    # Possible MODEL_TYPE values: 
-    #                          [ Available Models List  (see viddesc_model.py)]
-    #
-    #                          ArcticVideoCaptionWithInit
-    #
-    # ===
-
-    MODEL_TYPE = 'ArcticVideoCaptionWithInit'
+    MODEL_TYPE = 'ABiVirNet'
+    RNN_TYPE = 'LSTM'                             # RNN unit type ('LSTM' and 'GRU' supported)
 
     # Input text parameters
-    GLOVE_VECTORS = None              # Path to pretrained vectors. Set to None if you don't want to use pretrained vectors.
-    GLOVE_VECTORS_TRAINABLE = True    # Finetune or not the word embedding vectors.
-    TEXT_EMBEDDING_HIDDEN_SIZE = 301  # When using pretrained word embeddings, this parameter must match with the word embeddings size
+    TARGET_TEXT_EMBEDDING_SIZE = 420              # Source language word embedding size.
+    TRG_PRETRAINED_VECTORS = None                 # Path to pretrained vectors. (e.g. DATA_ROOT_PATH + '/DATA/word2vec.%s.npy' % TRG_LAN)
+                                                  # Set to None if you don't want to use pretrained vectors.
+                                                  # When using pretrained word embeddings, the size of the pretrained word embeddings must match with the word embeddings size.
+    TRG_PRETRAINED_VECTORS_TRAINABLE = True       # Finetune or not the target word embedding vectors.
 
-    # Layer dimensions
-    LSTM_ENCODER_HIDDEN_SIZE = 717   # For models with LSTM encoder
-    BLSTM_ENCODER = True             # Use bidirectional LSTM encoder
-    LSTM_DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder
+    # Encoder configuration
+    ENCODER_HIDDEN_SIZE = 600                     # For models with RNN encoder
+    BIDIRECTIONAL_ENCODER = True                  # Use bidirectional encoder
+    N_LAYERS_ENCODER = 1                          # Stack this number of encoding layers
+    BIDIRECTIONAL_DEEP_ENCODER = True             # Use bidirectional encoder in all encoding layers
+
+    DECODER_HIDDEN_SIZE = 484   # For models with LSTM decoder
 
     IMG_EMBEDDING_LAYERS = []  # FC layers for visual embedding
                                # Here we should specify the activation function and the output dimension
                                # (e.g IMG_EMBEDDING_LAYERS = [('linear', 1024)]
 
-    DEEP_OUTPUT_LAYERS = []   # additional Fully-Connected layers's sizes applied before softmax.
-                              # Here we should specify the activation function and the output dimension
-                              # (e.g DEEP_OUTPUT_LAYERS = [('tanh', 600), ('relu',400), ('relu':200)])
+    # Fully-Connected layers for initializing the first RNN state
+    #       Here we should only specify the activation function of each layer
+    #       (as they have a potentially fixed size)
+    #       (e.g INIT_LAYERS = ['tanh', 'relu'])
+    INIT_LAYERS = ['tanh']
 
-    INIT_LAYERS = ['tanh']    # FC layers for initializing the first LSTM state
-                              # Here we should only specify the activation function of each layer (as they have a potentially fixed size)
-                              # (e.g INIT_LAYERS = ['tanh', 'relu'])
+    # Additional Fully-Connected layers's sizes applied before softmax.
+    #       Here we should specify the activation function and the output dimension
+    #       (e.g DEEP_OUTPUT_LAYERS = [('tanh', 600), ('relu', 400), ('relu', 200)])
+    DEEP_OUTPUT_LAYERS = [('linear', TARGET_TEXT_EMBEDDING_SIZE)]
 
-    # Regularizers / Normalizers
-    USE_DROPOUT = True                  # Use dropout (0.5)
-    USE_BATCH_NORMALIZATION = False     # If True it is recommended to deactivate Dropout
-    USE_PRELU = False                   # use PReLU activations
-    USE_L2 = False                      # L2 normalization on the features
+    # Regularizers
+    WEIGHT_DECAY = 1e-4                           # L2 regularization
+    RECURRENT_WEIGHT_DECAY = 0.                   # L2 regularization in recurrent layers
 
-    CLASSIFIER_ACTIVATION = 'softmax'
+    USE_DROPOUT = False                           # Use dropout
+    DROPOUT_P = 0.5                               # Percentage of units to drop
+
+    USE_RECURRENT_DROPOUT = False                 # Use dropout in recurrent layers # DANGEROUS!
+    RECURRENT_DROPOUT_P = 0.5                     # Percentage of units to drop in recurrent layers
+
+    USE_NOISE = True                              # Use gaussian noise during training
+    NOISE_AMOUNT = 0.01                           # Amount of noise
+
+    USE_BATCH_NORMALIZATION = True                # If True it is recommended to deactivate Dropout
+    BATCH_NORMALIZATION_MODE = 1                  # See documentation in Keras' BN
+
+    USE_PRELU = False                             # use PReLU activations as regularizer
+    USE_L2 = False                                # L2 normalization on the features
 
     # Results plot and models storing parameters
-    EXTRA_NAME = '_best_model'                    # This will be appended to the end of the model name
-    MODEL_NAME = MODEL_TYPE + '_'.join(FEATURE_NAMES) +\
-                 '_txtemb_' + str(TEXT_EMBEDDING_HIDDEN_SIZE) + \
+    EXTRA_NAME = ''                    # This will be appended to the end of the model name
+    MODEL_NAME = DATASET_NAME + '_' + MODEL_TYPE +\
+                 '_txtemb_' + str(TARGET_TEXT_EMBEDDING_SIZE) + \
                  '_imgemb_' + '_'.join([layer[0] for layer in IMG_EMBEDDING_LAYERS]) + \
-                 '_lstmenc_' + str(LSTM_ENCODER_HIDDEN_SIZE) + \
-                 '_lstm_' + str(LSTM_DECODER_HIDDEN_SIZE) + \
+                 '_lstmenc_' + str(ENCODER_HIDDEN_SIZE) + \
+                 '_lstm_' + str(DECODER_HIDDEN_SIZE) + \
                  '_deepout_' + '_'.join([layer[0] for layer in DEEP_OUTPUT_LAYERS]) + \
                  '_' + OPTIMIZER
 
     MODEL_NAME += EXTRA_NAME
-            
-    STORE_PATH = 'trained_models/' + MODEL_NAME  + '/' # Models and evaluation results will be stored here
+
+    STORE_PATH = 'trained_models/' + MODEL_NAME + '/'  # Models and evaluation results will be stored here
     DATASET_STORE_PATH = 'datasets/'                   # Dataset instance will be stored here
 
     SAMPLING_SAVE_MODE = 'list'                        # 'list' or 'vqa'
@@ -183,9 +190,10 @@ def load_parameters():
                                                        # be greater than 0 and EVAL_ON_SETS will be used)
 
     # Extra parameters for special trainings
-    TRAIN_ON_TRAINVAL = False  # train the model on both training and validation sets combined
-    FORCE_RELOAD_VOCABULARY = False  # force building a new vocabulary from the training samples applicable if RELOAD > 1
+    TRAIN_ON_TRAINVAL = False                          # train the model on both training and validation sets combined
+    FORCE_RELOAD_VOCABULARY = False                    # force building a new vocabulary from the training samples
+                                                       # applicable if RELOAD > 1
 
-    # ============================================
+    # ================================================ #
     parameters = locals().copy()
     return parameters

@@ -1,20 +1,29 @@
-from keras.layers import *
+from keras.engine import Input
+from keras.engine.topology import merge
+from keras.layers import TimeDistributed, Bidirectional
+from keras.layers.embeddings import Embedding
+from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond
+from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer
 from keras.models import model_from_json, Model
-from keras.optimizers import Adam, RMSprop, Nadam, Adadelta
-from keras import backend as K
+from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
 from keras.regularizers import l2
-
-from keras_wrapper.cnn_model import CNN_Model
-
+from keras_wrapper.cnn_model import Model_Wrapper
+from keras import backend as K
+from keras_wrapper.extra.regularize import Regularize
 import numpy as np
 import os
 import logging
-import shutil
-import time
 
-class VideoDesc_Model(CNN_Model):
 
-    def __init__(self, params, type='Basic_Video_Model', verbose=1, structure_path=None, weights_path=None,
+class VideoDesc_Model(Model_Wrapper):
+    """
+    Translation model class. Instance of the Model_Wrapper class (see staged_keras_wrapper).
+    """
+
+    def resumeTrainNet(self, ds, params, out_name=None):
+        pass
+
+    def __init__(self, params, type='VideoDesc_Model', verbose=1, structure_path=None, weights_path=None,
                  model_name=None, vocabularies=None, store_path=None):
         """
             VideoDesc_Model object constructor. 
@@ -44,37 +53,47 @@ class VideoDesc_Model(CNN_Model):
         self._model_type = type
         self.params = params
         self.vocabularies = vocabularies
-
+        self.ids_inputs = params['INPUTS_IDS_MODEL']
+        self.ids_outputs = params['OUTPUTS_IDS_MODEL']
         # Sets the model name and prepares the folders for storing the models
-        self.setName(model_name, store_path=store_path)
+        self.setName(model_name, models_path=store_path)
 
-        # Prepare GLOVE embedding
-        if params['GLOVE_VECTORS'] is not None:
+        # Prepare target word embedding
+        if params['TRG_PRETRAINED_VECTORS'] is not None:
             if self.verbose > 0:
-                logging.info("<<< Loading pretrained word vectors from file "+ params['GLOVE_VECTORS'] +" >>>")
-            self.word_vectors = np.load(os.path.join(params['GLOVE_VECTORS'])).item()
+                logging.info("<<< Loading pretrained word vectors from: " + params['TRG_PRETRAINED_VECTORS'] + " >>>")
+            self.trg_word_vectors = np.load(os.path.join(params['TRG_PRETRAINED_VECTORS'])).item()
+            self.trg_embedding_weights = np.random.rand(params['OUTPUT_VOCABULARY_SIZE'],
+                                                        params['TARGET_TEXT_EMBEDDING_SIZE'])
+            for word, index in self.vocabularies[self.ids_outputs[0]]['words2idx'].iteritems():
+                if self.trg_word_vectors.get(word) is not None:
+                    self.trg_embedding_weights[index, :] = self.trg_word_vectors[word]
+            self.trg_embedding_weights = [self.trg_embedding_weights]
+            self.trg_embedding_weights_trainable = params['TRG_PRETRAINED_VECTORS_TRAINABLE']
+
         else:
-            self.word_vectors = dict()
+            self.trg_embedding_weights = None
+            self.trg_embedding_weights_trainable = True
 
         # Prepare model
         if structure_path:
             # Load a .json model
             if self.verbose > 0:
-                logging.info("<<< Loading model structure from file "+ structure_path +" >>>")
+                logging.info("<<< Loading model structure from file " + structure_path + " >>>")
             self.model = model_from_json(open(structure_path).read())
         else:
             # Build model from scratch
             if hasattr(self, type):
                 if self.verbose > 0:
                     logging.info("<<< Building '"+ type +"' Video Captioning Model >>>")
-                eval('self.'+type+'(params)')
+                eval('self.' + type + '(params)')
             else:
                 raise Exception('Video_Captioning_Model type "'+ type +'" is not implemented.')
         
         # Load weights from file
         if weights_path:
             if self.verbose > 0:
-                logging.info("<<< Loading weights from file "+ weights_path +" >>>")
+                logging.info("<<< Loading weights from file " + weights_path + " >>>")
             self.model.load_weights(weights_path)
 
         # Print information of self
@@ -84,10 +103,11 @@ class VideoDesc_Model(CNN_Model):
 
         self.setOptimizer()
 
-    def setOptimizer(self):
+    def setOptimizer(self, **kwargs):
 
         """
-            Sets a new optimizer for the Translation_Model.
+        Sets a new optimizer for the Translation_Model.
+        :param **kwargs:
         """
 
         # compile differently depending if our model is 'Sequential' or 'Graph'
@@ -101,177 +121,22 @@ class VideoDesc_Model(CNN_Model):
             optimizer = Nadam(lr=self.params['LR'], clipnorm=self.params['CLIP_C'])
         elif self.params['OPTIMIZER'].lower() == 'adadelta':
             optimizer = Adadelta(lr=self.params['LR'], clipnorm=self.params['CLIP_C'])
+        elif self.params['OPTIMIZER'].lower() == 'sgd':
+            optimizer = SGD(lr=self.params['LR'], clipnorm=self.params['CLIP_C'])
         else:
-            logging.warning('\tWARNING: The modification of the LR is not implemented for the chosen optimizer.')
-            optimizer = self.params['OPTIMIZER']
+            logging.info('\tWARNING: The modification of the LR is not implemented for the chosen optimizer.')
+            optimizer = eval(self.params['OPTIMIZER'])
         self.model.compile(optimizer=optimizer, loss=self.params['LOSS'],
                            sample_weight_mode='temporal' if self.params['SAMPLE_WEIGHTS'] else None)
 
 
-    def setName(self, model_name, store_path=None, clear_dirs=True):
-        """
-            Changes the name (identifier) of the Translation_Model instance.
-        """
-        if model_name is None:
-            self.name = time.strftime("%Y-%m-%d") + '_' + time.strftime("%X")
-            create_dirs = False
-        else:
-            self.name = model_name
-            create_dirs = True
-
-        if store_path is None:
-            self.model_path = 'Models/' + self.name
-        else:
-            self.model_path = store_path
-
-
-        # Remove directories if existed
-        if clear_dirs:
-            if os.path.isdir(self.model_path):
-                shutil.rmtree(self.model_path)
-
-        # Create new ones
-        if create_dirs:
-            if not os.path.isdir(self.model_path):
-                os.makedirs(self.model_path)
-
-
-    def sample(a, temperature=1.0):
-        # helper function to sample an index from a probability array
-        a = np.log(a) / temperature
-        a = np.exp(a) / np.sum(np.exp(a))
-        return np.argmax(np.random.multinomial(1, a, 1))
-
-
-    def sampling(self, scores, sampling_type='max_likelihood', temperature=1.0):
-        """
-        Sampling words (each sample is drawn from a categorical distribution).
-        Or picks up words that maximize the likelihood.
-        In:
-            scores - array of size #samples x #classes; 
-                every entry determines a score for sample i having class j
-            temperature - temperature for the predictions;
-                the higher the flatter probabilities and hence more random answers
-
-        Out:
-            set of indices chosen as output, a vector of size #samples
-        """
-        if isinstance(scores, dict):
-            scores = scores['output']
-
-        if sampling_type == 'multinomial':
-            logscores = np.log(scores) / temperature
-            # numerically stable version
-            normalized_logscores= logscores - np.max(logscores, axis=-1)[:, np.newaxis]
-            margin_logscores = np.sum(np.exp(normalized_logscores),axis=-1)
-            probs = np.exp(normalized_logscores) / margin_logscores[:, np.newaxis]
-
-            #probs = probs.astype('float32')
-            draws = np.zeros_like(probs)
-            num_samples = probs.shape[0]
-            # we use 1 trial to mimic categorical distributions using multinomial
-            for k in xrange(num_samples):
-                draws[k, :] = np.random.multinomial(1,probs[k,:],1)
-            return np.argmax(draws, axis=-1)
-        elif sampling_type == 'max_likelihood':
-            return np.argmax(scores, axis=-1)
-        else:
-            raise NotImplementedError()
-
-    def decode_predictions(self, preds, temperature, index2word, sampling_type, verbose=0):
-        """
-        Decodes predictions
-
-        In:
-            preds - predictions codified as the output of a softmax activation function
-            temperature - temperature for sampling
-            index2word - mapping from word indices into word characters
-            verbose - verbosity level, by default 0
-
-        Out:
-            Answer predictions (list of answers)
-        """
-        if verbose > 0:
-            logging.info('Decoding prediction ...')
-        flattened_preds = preds.reshape(-1, preds.shape[-1])
-        flattened_answer_pred = map(lambda x: index2word[x],self.sampling(scores=flattened_preds,
-                                                                          sampling_type=sampling_type,
-                                                                          temperature=temperature))
-        answer_pred_matrix = np.asarray(flattened_answer_pred).reshape(preds.shape[:2])
-        answer_pred = []
-        EOS = '<eos>'
-        BOS = '<bos>'
-        PAD = '<pad>'
-
-        for a_no in answer_pred_matrix:
-            init_token_pos = 0
-            end_token_pos = [j for j, x in enumerate(a_no) if x==EOS or x == PAD]
-            end_token_pos = None if len(end_token_pos) == 0 else end_token_pos[0]
-            tmp = ' '.join(a_no[init_token_pos:end_token_pos])
-            answer_pred.append(tmp)
-        return answer_pred
-
-
-    def decode_predictions_beam_search(self, preds, index2word, verbose=0):
-        """
-        Decodes predictions
-
-        In:
-            preds - predictions codified as word indices
-            index2word - mapping from word indices into word characters
-            verbose - verbosity level, by default 0
-
-        Out:
-            Answer predictions (list of answers)
-        """
-        if verbose > 0:
-            logging.info('Decoding beam search prediction ...')
-
-        flattened_answer_pred = [map(lambda x: index2word[x], pred) for pred in preds]
-        answer_pred = []
-        for a_no in flattened_answer_pred:
-            tmp = ' '.join(a_no[:-1])
-            answer_pred.append(tmp)
-        return answer_pred
-
-    def decode_predictions_one_hot(self, preds, index2word, verbose=0):
-        """
-        Decodes predictionss
-
-        In:
-            preds - predictions codified as one hot vectors
-            index2word - mapping from word indices into word characters
-            verbose - verbosity level, by default 0
-
-        Out:
-            Answer predictions (list of answers)
-        """
-        if verbose > 0:
-            logging.info('Decoding one hot prediction ...')
-        preds = map(lambda x: np.nonzero(x)[1], preds)
-        PAD = '<pad>'
-        flattened_answer_pred = [map(lambda x: index2word[x], pred) for pred in preds]
-        answer_pred_matrix = np.asarray(flattened_answer_pred)
-        answer_pred = []
-
-        for a_no in answer_pred_matrix:
-            end_token_pos = [j for j, x in enumerate(a_no) if x == PAD]
-            end_token_pos = None if len(end_token_pos) == 0 else end_token_pos[0]
-            tmp = ' '.join(a_no[:end_token_pos])
-            answer_pred.append(tmp)
-        return answer_pred
-    # ------------------------------------------------------- #
-    #       VISUALIZATION
-    #           Methods for visualization
-    # ------------------------------------------------------- #
-
     def __str__(self):
         """
-            Plot basic model information.
+        Plots basic model information.
         """
         obj_str = '-----------------------------------------------------------------------------------\n'
         class_name = self.__class__.__name__
-        obj_str += '\t\t'+class_name +' instance\n'
+        obj_str += '\t\t' + class_name + ' instance\n'
         obj_str += '-----------------------------------------------------------------------------------\n'
 
         # Print pickled attributes
@@ -280,10 +145,9 @@ class VideoDesc_Model(CNN_Model):
             obj_str += '\n'
 
         obj_str += '\n'
-        obj_str += 'MODEL PARAMETERS:\n'
+        obj_str += 'MODEL params:\n'
         obj_str += str(self.params)
         obj_str += '\n'
-
         obj_str += '-----------------------------------------------------------------------------------'
 
         return obj_str
@@ -292,7 +156,7 @@ class VideoDesc_Model(CNN_Model):
     #       PREDEFINED MODELS
     # ------------------------------------------------------- #
 
-    def ArcticVideoCaptionWithInit(self, params):
+    def ABiVirNet(self, params):
         """
         Video captioning with:
             * Attention mechansim on video frames
@@ -303,152 +167,303 @@ class VideoDesc_Model(CNN_Model):
         :param params:
         :return:
         """
-        input_name = params['INPUTS_IDS_MODEL']
-        output_name = params['OUTPUTS_IDS_MODEL']
-
-        # Previously generated words as inputs for training
-        next_words = Input(name=input_name[1], batch_shape=tuple([None, None]), dtype='int32')
-        emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'], params['TEXT_EMBEDDING_HIDDEN_SIZE'],
-                        name='target_word_embedding',
-                        W_regularizer=l2(params['WEIGHT_DECAY']),
-                        mask_zero=True)(next_words)
 
         # Video model
-        video = Input(name=input_name[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
+        video = Input(name=self.ids_inputs[0], shape=tuple([params['NUM_FRAMES'], params['IMG_FEAT_SIZE']]))
         input_video = video
-
+        ##################################################################
+        #                       ENCODER
+        ##################################################################
         for activation, dimension in params['IMG_EMBEDDING_LAYERS']:
             input_video = TimeDistributed(Dense(dimension, name='%s_1'%activation, activation=activation,
                                                W_regularizer=l2(params['WEIGHT_DECAY'])))(input_video)
-            if params['USE_BATCH_NORMALIZATION']:
-                input_video = BatchNormalization(name='batch_normalization_image_embedding',
-                                                W_regularizer=l2(params['WEIGHT_DECAY']))(input_video)
-            if params['USE_PRELU']:
-                input_video = PReLU(W_regularizer=l2(params['WEIGHT_DECAY']))(input_video)
-            if params['USE_DROPOUT']:
-                input_video = Dropout(0.5)(input_video)
-            if params['USE_L2']:
-                input_video = Lambda(L2_norm)(input_video)
+            input_video = Regularize(input_video, params, name='%s_1'%activation)
 
-        if params['LSTM_ENCODER_HIDDEN_SIZE'] > 0:
-            if params['BLSTM_ENCODER']:
-                encoder = Bidirectional(LSTM(params['LSTM_ENCODER_HIDDEN_SIZE'],
-                                             W_regularizer=l2(params['WEIGHT_DECAY']),
-                                             U_regularizer=l2(params['WEIGHT_DECAY']),
-                                             b_regularizer=l2(params['WEIGHT_DECAY']),
-                                             return_sequences=True),
-                                        name='bidirectional_encoder')(input_video)
+        if params['ENCODER_HIDDEN_SIZE'] > 0:
+            if params['BIDIRECTIONAL_ENCODER']:
+                encoder = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                                 W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                 U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                 b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                 dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                 dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                 return_sequences=True),
+                                        name='bidirectional_encoder_' + params['RNN_TYPE'],
+                                        merge_mode='concat')(input_video)
             else:
-                encoder = LSTM(params['LSTM_ENCODER_HIDDEN_SIZE'],
-                               name='lstm_encoder',
-                               W_regularizer=l2(params['WEIGHT_DECAY']),
-                               U_regularizer=l2(params['WEIGHT_DECAY']),
-                               b_regularizer=l2(params['WEIGHT_DECAY']),
-                               return_sequences=True)(input_video)
+                encoder = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                       W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                       dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                       return_sequences=True,
+                                                       name='encoder_' + params['RNN_TYPE'])(input_video)
             input_video = merge([input_video, encoder], mode='concat', concat_axis=2)
+            input_video = Regularize(input_video, params, name='input_video')
+
+            # 2.3. Potentially deep encoder
+            for n_layer in range(1, params['N_LAYERS_ENCODER']):
+                if params['BIDIRECTIONAL_DEEP_ENCODER']:
+                    current_input_video = Bidirectional(eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                                             W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                             U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                             b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                             dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                             dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                             return_sequences=True,
+                                                                             ),
+                                                    merge_mode='concat',
+                                                    name='bidirectional_encoder_' + str(n_layer))(input_video)
+                else:
+                    current_input_video = eval(params['RNN_TYPE'])(params['ENCODER_HIDDEN_SIZE'],
+                                                           W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                           U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                           b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                           dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                           dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                           return_sequences=True,
+                                                           name='encoder_' + str(n_layer))(input_video)
+
+                current_input_video = Regularize(current_input_video, params, name='input_video_' + str(n_layer))
+                input_video = merge([input_video, current_input_video], mode='sum')
+
+        # Previously generated words as inputs for training
+        next_words = Input(name=self.ids_inputs[1], batch_shape=tuple([None, None]), dtype='int32')
+        emb = Embedding(params['OUTPUT_VOCABULARY_SIZE'],
+                        params['TARGET_TEXT_EMBEDDING_SIZE'],
+                        name='target_word_embedding',
+                        W_regularizer=l2(params['WEIGHT_DECAY']),
+                        trainable=self.trg_embedding_weights_trainable,
+                        weights=self.trg_embedding_weights,
+                        mask_zero=True)(next_words)
+        emb = Regularize(emb, params, name='target_word_embedding')
 
         # LSTM initialization perceptrons with ctx mean
-        ctx_mean = Lambda(lambda x: K.mean(x, axis=1), output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
-        if params['USE_DROPOUT']:
-            ctx_mean = Dropout(0.5)(ctx_mean)
+        # 3.2. Decoder's RNN initialization perceptrons with ctx mean
+        ctx_mean = Lambda(lambda x: K.mean(x, axis=1),
+                          output_shape=lambda s: (s[0], s[2]), name='lambda_mean')(input_video)
 
         if len(params['INIT_LAYERS']) > 0:
-            for nlayer_init in range(len(params['INIT_LAYERS'])-1):
-                ctx_mean = Dense(params['LSTM_DECODER_HIDDEN_SIZE'], name='init_layer_%d'%nlayer_init,
-                                 activation=params['INIT_LAYERS'][nlayer_init],
-                                 W_regularizer=l2(params['WEIGHT_DECAY']))(ctx_mean)
-                if params['USE_DROPOUT']:
-                    ctx_mean = Dropout(0.5)(ctx_mean)
-            initial_state = Dense(params['LSTM_DECODER_HIDDEN_SIZE'], name='initial_state',
-                                  activation=params['INIT_LAYERS'][-1],
-                                  W_regularizer=l2(params['WEIGHT_DECAY']))(ctx_mean)
-            initial_memory = Dense(params['LSTM_DECODER_HIDDEN_SIZE'], name='initial_memory',
-                                  activation=params['INIT_LAYERS'][-1],
-                                  W_regularizer=l2(params['WEIGHT_DECAY']))(ctx_mean)
-            if params['USE_DROPOUT']:
-                initial_state = Dropout(0.5)(initial_state)
-                initial_memory = Dropout(0.5)(initial_memory)
+            for n_layer_init in range(len(params['INIT_LAYERS'])-1):
+                ctx_mean = Dense(params['DECODER_HIDDEN_SIZE'], name='init_layer_%d' % n_layer_init,
+                                 W_regularizer=l2(params['WEIGHT_DECAY']),
+                                 activation=params['INIT_LAYERS'][n_layer_init]
+                                 )(ctx_mean)
+                ctx_mean = Regularize(ctx_mean, params, name='ctx' + str(n_layer_init))
 
-            input_attlstmcond = [emb, input_video, initial_state, initial_memory]
+            initial_state = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_state',
+                                  W_regularizer=l2(params['WEIGHT_DECAY']),
+                                  activation=params['INIT_LAYERS'][-1]
+                                  )(ctx_mean)
+            initial_state = Regularize(initial_state, params, name='initial_state')
+            input_attentional_decoder = [emb, input_video, initial_state]
+
+            if params['RNN_TYPE'] == 'LSTM':
+                initial_memory = Dense(params['DECODER_HIDDEN_SIZE'], name='initial_memory',
+                                       W_regularizer=l2(params['WEIGHT_DECAY']),
+                                       activation=params['INIT_LAYERS'][-1])(ctx_mean)
+                initial_memory = Regularize(initial_memory, params, name='initial_memory')
+                input_attentional_decoder.append(initial_memory)
         else:
-            # initial_state = ctx_mean
-            # initial_memory = ctx_mean
-            input_attlstmcond = [emb, input_video]
+            input_attentional_decoder = [emb, input_video]
+        ##################################################################
+        #                       DECODER
+        ##################################################################
 
-        # Decoder
-        [proj_h, x_att, alphas] = AttLSTMCond(params['LSTM_DECODER_HIDDEN_SIZE'],
-                                              W_regularizer=l2(params['WEIGHT_DECAY']), # LSTM weichts
-                                              U_regularizer=l2(params['WEIGHT_DECAY']),
-                                              V_regularizer=l2(params['WEIGHT_DECAY']),
-                                              b_regularizer=l2(params['WEIGHT_DECAY']),
-                                              wa_regularizer=l2(params['WEIGHT_DECAY']), # attention weights
-                                              Wa_regularizer=l2(params['WEIGHT_DECAY']),
-                                              Ua_regularizer=l2(params['WEIGHT_DECAY']),
-                                              ba_regularizer=l2(params['WEIGHT_DECAY']),
-                                              #init='norm_weight',           # ctx and prev-word matrix (W and V)
-                                              #inner_init='ortho_weight',    # hidden state matrix (U)
-                                              #dropout_Wa=0.5,
-                                              #dropout_wa=0.5,
-                                              #dropout_Ua=0.5,
-                                              return_sequences=True,
-                                              return_extra_variables=True)(input_attlstmcond)
-        if params['USE_BATCH_NORMALIZATION']:
-            proj_h = BatchNormalization(name='batch_normalization_image_embedding',
-                                        W_regularizer=l2(params['WEIGHT_DECAY']))(proj_h)
-        if params['USE_PRELU']:
-            proj_h = PReLU(W_regularizer=l2(params['WEIGHT_DECAY']))(proj_h)
-        if params['USE_DROPOUT']:
-            proj_h = Dropout(0.5)(proj_h)
+        # 3.3. Attentional decoder
+        sharedAttRNNCond = eval('Att' + params['RNN_TYPE'] + 'Cond')(params['DECODER_HIDDEN_SIZE'],
+                                                                     W_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     U_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     V_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     b_regularizer=l2(params['RECURRENT_WEIGHT_DECAY']),
+                                                                     wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     Wa_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     Ua_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     ba_regularizer=l2(params['WEIGHT_DECAY']),
+                                                                     dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_V=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
+                                                                     dropout_wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
+                                                                     dropout_Wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
+                                                                     dropout_Ua=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
+                                                                     return_sequences=True,
+                                                                     return_extra_variables=True,
+                                                                     return_states=True,
+                                                                     name='decoder_Att' + params['RNN_TYPE'] + 'Cond')
 
-        # Equation 7 from Show, attend and tell (http://arxiv.org/abs/1502.03044)
-        out_layer_mlp = TimeDistributed(Dense(params['TEXT_EMBEDDING_HIDDEN_SIZE'], activation='linear',
-                                              W_regularizer=l2(params['WEIGHT_DECAY'])), name='logit_lstm')(proj_h)
-        out_layer_ctx = TimeDistributed(Dense(params['TEXT_EMBEDDING_HIDDEN_SIZE'], activation='linear',
-                                              W_regularizer=l2(params['WEIGHT_DECAY'])), name='logit_ctx')(x_att)
-        out_layer_ctx = Lambda(lambda x: K.permute_dimensions(x, [1, 0, 2]))(out_layer_ctx)
-        additional_output = merge([out_layer_mlp, out_layer_ctx, emb], mode='sum', name='additional_input')
-        out_layer = Activation('tanh')(additional_output)
+        rnn_output = sharedAttRNNCond(input_attentional_decoder)
+        proj_h = rnn_output[0]
+        x_att = rnn_output[1]
+        alphas = rnn_output[2]
+        h_state = rnn_output[3]
+        if params['RNN_TYPE'] == 'LSTM':
+            h_memory = rnn_output[4]
 
-        if params['USE_BATCH_NORMALIZATION']:
-            out_layer = BatchNormalization(name='batch_normalization_image_embedding',
-                                           W_regularizer=l2(params['WEIGHT_DECAY']))(out_layer)
-        if params['USE_PRELU']:
-            out_layer = PReLU(W_regularizer=l2(params['WEIGHT_DECAY']))(out_layer)
-        if params['USE_DROPOUT']:
-            out_layer = Dropout(0.5)(out_layer)
+        [proj_h, shared_reg_proj_h] = Regularize(proj_h, params, shared_layers=True, name='proj_h0')
 
-        # Optional deep ouput
-        for activation, dimension in params['DEEP_OUTPUT_LAYERS']:
-            out_layer = TimeDistributed(Dense(dimension, activation=activation,
-                                            W_regularizer=l2(params['WEIGHT_DECAY'])))(out_layer)
-            if params['USE_BATCH_NORMALIZATION']:
-                out_layer = BatchNormalization(name='batch_normalization_image_embedding',
-                                              W_regularizer=l2(params['WEIGHT_DECAY']))(out_layer)
-            if params['USE_PRELU']:
-                out_layer = PReLU(W_regularizer=l2(params['WEIGHT_DECAY']))(out_layer)
-            if params['USE_DROPOUT']:
-                out_layer = Dropout(0.5)(out_layer)
+        shared_FC_mlp = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                                              W_regularizer=l2(params['WEIGHT_DECAY']),
+                                              activation='linear',
+                                              ), name='logit_lstm')
+        out_layer_mlp = shared_FC_mlp(proj_h)
+        shared_FC_ctx = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                                              W_regularizer=l2(params['WEIGHT_DECAY']),
+                                              activation='linear',
+                                              ), name='logit_ctx')
+        out_layer_ctx = shared_FC_ctx(x_att)
 
-        # Softmax
-        output = TimeDistributed(Dense(params['OUTPUT_VOCABULARY_SIZE'], activation=params['CLASSIFIER_ACTIVATION'],
-                                       name=params['CLASSIFIER_ACTIVATION'],
-                                       W_regularizer=l2(params['WEIGHT_DECAY'])),
-                                 name=output_name[0])(out_layer)
-        self.model = Model(input=[video, next_words], output=output)
+        shared_Lambda_Permute = PermuteGeneral((1, 0, 2))
+        out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
+        shared_FC_emb = TimeDistributed(Dense(params['TARGET_TEXT_EMBEDDING_SIZE'],
+                                        W_regularizer=l2(params['WEIGHT_DECAY']),
+                                        activation='linear'),
+                                        name='logit_emb')
+        out_layer_emb = shared_FC_emb(emb)
 
-        # Store inputs and outputs names
-        self.ids_inputs = input_name
-        self.ids_outputs = output_name
+        [out_layer_mlp, shared_reg_out_layer_mlp] = Regularize(out_layer_mlp, params,
+                                                               shared_layers=True, name='out_layer_mlp')
+        [out_layer_ctx, shared_reg_out_layer_ctx] = Regularize(out_layer_ctx, params,
+                                                               shared_layers=True, name='out_layer_ctx')
+        [out_layer_emb, shared_reg_out_layer_emb] = Regularize(out_layer_emb, params,
+                                                               shared_layers=True, name='out_layer_emb')
 
-    # ------------------------------------------------------- #
-    #       SAVE/LOAD
-    #           Auxiliary methods for saving and loading the model.
-    # ------------------------------------------------------- #
-            
-    def __getstate__(self): 
-        """
-            Behavour applied when pickling a VideoDesc instance.
-        """ 
-        obj_dict = self.__dict__.copy()
-        del obj_dict['model']
-        return obj_dict
+        additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb], mode='sum', name='additional_input')
+        shared_activation_tanh = Activation('tanh')
+
+        out_layer = shared_activation_tanh(additional_output)
+
+        shared_deep_list = []
+        shared_reg_deep_list = []
+        # 3.6 Optional deep ouput layer
+        for i, (activation, dimension) in enumerate(params['DEEP_OUTPUT_LAYERS']):
+            if activation.lower() == 'maxout':
+                shared_deep_list.append(TimeDistributed(MaxoutDense(dimension,
+                                                                    W_regularizer=l2(params['WEIGHT_DECAY'])),
+                                                        name='maxout_%d' % i))
+            else:
+                shared_deep_list.append(TimeDistributed(Dense(dimension, activation=activation,
+                                                              W_regularizer=l2(params['WEIGHT_DECAY'])),
+                                                        name=activation+'_%d' % i))
+            out_layer = shared_deep_list[-1](out_layer)
+            [out_layer, shared_reg_out_layer] = Regularize(out_layer,
+                                                           params, shared_layers=True, name='out_layer'+str(activation))
+            shared_reg_deep_list.append(shared_reg_out_layer)
+
+        # 3.7. Output layer: Softmax
+        shared_FC_soft = TimeDistributed(Dense(params['OUTPUT_VOCABULARY_SIZE'],
+                                               activation=params['CLASSIFIER_ACTIVATION'],
+                                               W_regularizer=l2(params['WEIGHT_DECAY']),
+                                               name=params['CLASSIFIER_ACTIVATION']
+                                               ),
+                                         name=self.ids_outputs[0])
+        softout = shared_FC_soft(out_layer)
+
+        self.model = Model(input=[video, next_words], output=softout)
+
+        ##################################################################
+        #                     BEAM SEARCH MODEL                          #
+        ##################################################################
+        # Now that we have the basic training model ready, let's prepare the model for applying decoding
+        # The beam-search model will include all the minimum required set of layers (decoder stage) which offer the
+        # possibility to generate the next state in the sequence given a pre-processed input (encoder stage)
+        if params['BEAM_SEARCH']:
+            # First, we need a model that outputs the preprocessed input + initial h state
+            # for applying the initial forward pass
+            model_init_input = [video, next_words]
+            model_init_output = [softout, input_video, h_state]
+            if params['RNN_TYPE'] == 'LSTM':
+                model_init_output.append(h_memory)
+
+            self.model_init = Model(input=model_init_input, output=model_init_output)
+
+            # Store inputs and outputs names for model_init
+            self.ids_inputs_init = self.ids_inputs
+            # first output must be the output probs.
+            self.ids_outputs_init = self.ids_outputs + ['preprocessed_input', 'next_state']
+            if params['RNN_TYPE'] == 'LSTM':
+                self.ids_outputs_init.append('next_memory')
+
+            # Second, we need to build an additional model with the capability to have the following inputs:
+            #   - preprocessed_input
+            #   - prev_word
+            #   - prev_state
+            # and the following outputs:
+            #   - softmax probabilities
+            #   - next_state
+            if params['ENCODER_HIDDEN_SIZE'] > 0:
+                if params['BIDIRECTIONAL_ENCODER']:
+                    preprocessed_size = params['ENCODER_HIDDEN_SIZE']*2 + params['IMG_FEAT_SIZE']
+                else:
+                    preprocessed_size = params['ENCODER_HIDDEN_SIZE'] + params['IMG_FEAT_SIZE']
+            else:
+                preprocessed_size = params['IMG_FEAT_SIZE']
+
+            # Define inputs
+            preprocessed_annotations = Input(name='preprocessed_input', shape=tuple([params['NUM_FRAMES'], preprocessed_size]))
+            prev_h_state = Input(name='prev_state', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
+            input_attentional_decoder = [emb, preprocessed_annotations, prev_h_state]
+
+            if params['RNN_TYPE'] == 'LSTM':
+                prev_h_memory = Input(name='prev_memory', shape=tuple([params['DECODER_HIDDEN_SIZE']]))
+                input_attentional_decoder.append(prev_h_memory)
+            # Apply decoder
+            rnn_output = sharedAttRNNCond(input_attentional_decoder)
+            proj_h = rnn_output[0]
+            x_att = rnn_output[1]
+            alphas = rnn_output[2]
+            h_state = rnn_output[3]
+            if params['RNN_TYPE'] == 'LSTM':
+                h_memory = rnn_output[4]
+            for reg in shared_reg_proj_h:
+                proj_h = reg(proj_h)
+
+            out_layer_mlp = shared_FC_mlp(proj_h)
+            out_layer_ctx = shared_FC_ctx(x_att)
+            out_layer_ctx = shared_Lambda_Permute(out_layer_ctx)
+            out_layer_emb = shared_FC_emb(emb)
+
+            for (reg_out_layer_mlp, reg_out_layer_ctx, reg_out_layer_emb) in zip(shared_reg_out_layer_mlp,
+                                                                                 shared_reg_out_layer_ctx,
+                                                                                 shared_reg_out_layer_emb):
+                out_layer_mlp = reg_out_layer_mlp(out_layer_mlp)
+                out_layer_ctx = reg_out_layer_ctx(out_layer_ctx)
+                out_layer_emb = reg_out_layer_emb(out_layer_emb)
+
+            additional_output = merge([out_layer_mlp, out_layer_ctx, out_layer_emb],
+                                      mode='sum', name='additional_input_model_next')
+            out_layer = shared_activation_tanh(additional_output)
+
+            for (deep_out_layer, reg_list) in zip(shared_deep_list, shared_reg_deep_list):
+                out_layer = deep_out_layer(out_layer)
+                for reg in reg_list:
+                    out_layer = reg(out_layer)
+
+            # Softmax
+            softout = shared_FC_soft(out_layer)
+            model_next_inputs = [next_words, preprocessed_annotations, prev_h_state]
+            model_next_outputs = [softout, preprocessed_annotations, h_state]
+            if params['RNN_TYPE'] == 'LSTM':
+                model_next_inputs.append(prev_h_memory)
+                model_next_outputs.append(h_memory)
+
+            self.model_next = Model(input=model_next_inputs,
+                                    output=model_next_outputs)
+
+            # Store inputs and outputs names for model_next
+            # first input must be previous word
+            self.ids_inputs_next = [self.ids_inputs[1]] + ['preprocessed_input', 'prev_state']
+            # first output must be the output probs.
+            self.ids_outputs_next = self.ids_outputs + ['preprocessed_input', 'next_state']
+
+            # Input -> Output matchings from model_init to model_next and from model_next to model_next
+            self.matchings_init_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'next_state': 'prev_state'}
+            self.matchings_next_to_next = {'preprocessed_input': 'preprocessed_input',
+                                           'next_state': 'prev_state'}
+            if params['RNN_TYPE'] == 'LSTM':
+                self.ids_inputs_next.append('prev_memory')
+                self.ids_outputs_next.append('next_memory')
+                self.matchings_init_to_next['next_memory'] = 'prev_memory'
+                self.matchings_next_to_next['next_memory'] = 'prev_memory'
+
