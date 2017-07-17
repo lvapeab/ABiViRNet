@@ -5,7 +5,7 @@ This repository contains the code for building a system similar to the
 one from the work [Video Description using Bidirectional Recurrent Neural Networks](https://arxiv.org/abs/1604.03390), 
 presented at the [International Conference of Artificial Neural Networks (ICANN'16)](http://icann2016.org/). 
 With this module, you can replicate our experiments and easily deploy new models. ABiViRNet is built upon our fork of 
-[Keras](https://github.com/MarcBS/keras) framework and tested for the [Theano](http://deeplearning.net/software/theano)
+[Keras](https://github.com/MarcBS/keras) framework ([version 1.2](https://github.com/MarcBS/keras/tree/Keras-1.2-(stable))) and tested for the [Theano](http://deeplearning.net/software/theano)
 backend.
 
 ## Features: 
