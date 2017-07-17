@@ -1,9 +1,5 @@
 from keras.engine import Input
-from keras.engine.topology import merge
-from keras.layers import TimeDistributed, Bidirectional
-from keras.layers.embeddings import Embedding
-from keras.layers.recurrent import GRU, GRUCond, AttGRUCond, LSTM, LSTMCond, AttLSTMCond
-from keras.layers.core import Dense, Activation, Lambda, MaxoutDense, MaskedMean, PermuteGeneral, MaskLayer
+from keras.layers import *
 from keras.models import model_from_json, Model
 from keras.optimizers import Adam, RMSprop, Nadam, Adadelta, SGD
 from keras.regularizers import l2
@@ -284,9 +280,7 @@ class VideoDesc_Model(Model_Wrapper):
                                                                      dropout_W=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
                                                                      dropout_U=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
                                                                      dropout_V=params['RECURRENT_DROPOUT_P'] if params['USE_RECURRENT_DROPOUT'] else None,
-                                                                     dropout_wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
                                                                      dropout_Wa=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
-                                                                     dropout_Ua=params['DROPOUT_P'] if params['USE_DROPOUT'] else None,
                                                                      return_sequences=True,
                                                                      return_extra_variables=True,
                                                                      return_states=True,
