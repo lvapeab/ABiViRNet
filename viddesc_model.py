@@ -1,13 +1,5 @@
-from keras.engine import Input
-from keras.engine.topology import merge
-from keras.layers.core import Dropout, RepeatVector, Merge, Dense, Flatten, Activation, TimeDistributedDense, Lambda
-from keras.layers.embeddings import Embedding
-from keras.layers.wrappers import TimeDistributed, Bidirectional
-from keras.layers.recurrent import LSTM, LSTMCond, AttLSTMCond, AttLSTM
-from keras.models import model_from_json, Sequential, Graph, Model
-from keras.layers.advanced_activations import PReLU
-from keras.layers.normalization import BatchNormalization, L2_norm
-from keras.layers.convolutional import AveragePooling1D
+from keras.layers import *
+from keras.models import model_from_json, Model
 from keras.optimizers import Adam, RMSprop, Nadam, Adadelta
 from keras import backend as K
 from keras.regularizers import l2
@@ -393,11 +385,8 @@ class VideoDesc_Model(CNN_Model):
                                               Wa_regularizer=l2(params['WEIGHT_DECAY']),
                                               Ua_regularizer=l2(params['WEIGHT_DECAY']),
                                               ba_regularizer=l2(params['WEIGHT_DECAY']),
-                                              dropout_U=0.5,
-                                              dropout_V=0.5,
-                                              dropout_W=0.5,
-                                              init='norm_weight',           # ctx and prev-word matrix (W and V)
-                                              inner_init='ortho_weight',    # hidden state matrix (U)
+                                              #init='norm_weight',           # ctx and prev-word matrix (W and V)
+                                              #inner_init='ortho_weight',    # hidden state matrix (U)
                                               #dropout_Wa=0.5,
                                               #dropout_wa=0.5,
                                               #dropout_Ua=0.5,
