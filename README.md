@@ -65,7 +65,7 @@ Peris, Á., Bolanos, M., Radeva, P., & Casacuberta, F. (2016, September). Video 
 ```
 Bibtex version:
 
-``
+```
 @inproceedings{peris2016video,
   title={Video description using bidirectional recurrent neural networks},
   author={Peris, {\'A}lvaro and Bolanos, Marc and Radeva, Petia and Casacuberta, Francisco},
@@ -74,8 +74,7 @@ Bibtex version:
   year={2016},
   organization={Springer}
 }
-
-``
+```
 
 ## About
 
