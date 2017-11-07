@@ -60,10 +60,22 @@ See [data_engine/README.md](data_engine/README.md) for detailed information.
 ## Citation
 
 If you use this code for any purpose, please, do not forget to cite the following paper:
+```
+Peris, Á., Bolanos, M., Radeva, P., & Casacuberta, F. (2016, September). Video description using bidirectional recurrent neural networks. In International Conference on Artificial Neural Networks (pp. 3-11). Springer International Publishing.
+```
+Bibtex version:
 
-```
-Peris Á, Bolaños M, Radeva P, Casacuberta F. Video Description using Bidirectional Recurrent Neural Networks. arXiv preprint arXiv:1604.03390. 2016 Apr 12.
-```
+``
+@inproceedings{peris2016video,
+  title={Video description using bidirectional recurrent neural networks},
+  author={Peris, {\'A}lvaro and Bolanos, Marc and Radeva, Petia and Casacuberta, Francisco},
+  booktitle={International Conference on Artificial Neural Networks},
+  pages={3--11},
+  year={2016},
+  organization={Springer}
+}
+
+``
 
 ## About
 
