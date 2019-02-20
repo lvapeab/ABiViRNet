@@ -33,7 +33,7 @@ def train_model(params):
     # Build model
     if (params['RELOAD'] == 0):  # build new model
         video_model = VideoDesc_Model(params,
-                                      type=params['MODEL_TYPE'],
+                                      model_type=params['MODEL_TYPE'],
                                       verbose=params['VERBOSE'],
                                       model_name=params['MODEL_NAME'],
                                       vocabularies=dataset.vocabulary,
@@ -277,9 +277,6 @@ def check_params(params):
     if 'Glove' in params['MODEL_TYPE'] and params['GLOVE_VECTORS'] is None:
         logger.warning("You set a model that uses pretrained word vectors but you didn't specify a vector file."
                        "We'll train WITHOUT pretrained embeddings!")
-    if params["USE_DROPOUT"] and params["USE_BATCH_NORMALIZATION"]:
-        logger.warning("It's not recommended to use both dropout and batch normalization")
-
 
 if __name__ == "__main__":
 
